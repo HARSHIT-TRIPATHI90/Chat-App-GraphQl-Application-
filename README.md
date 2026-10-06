@@ -1,185 +1,110 @@
-# 🚀 Vulnerable GraphQL Chat Application Lab (CTF)
+# 💬 GraphQL Chat App
 
-An intentionally vulnerable GraphQL application built for CTFs, API security practice, and GraphQL security research.
+A minimal chat backend built with Apollo Server — made for practicing
+how to write a GraphQL schema, and how to call it with queries and
+mutations. No frontend, no database: just a schema, an in-memory message
+list, and a GraphQL Playground to experiment in.
 
-<p align="center">
-  <!-- Add your project banner here if needed -->
-</p>
+## Why this exists
 
-⚠️ **WARNING:** This application is intentionally vulnerable. It is designed for educational and authorized security testing only. Do not deploy this application to production or expose the vulnerable server to the public internet.
+This is a first-project-sized sandbox for learning GraphQL basics: how a
+`type` is defined, how a `Query` and a `Mutation` are different, how
+resolvers connect a schema to actual data, and how arguments flow into a
+mutation. Good for getting comfortable with the fundamentals before
+moving on to anything bigger.
 
----
+## Run it
 
-## 📖 About
-
-The **Vulnerable GraphQL Chat Application Lab** is a deliberately insecure chat application designed to demonstrate common vulnerabilities found in GraphQL and API-based applications.
-
-The lab is divided into multiple progressive levels. Each level focuses on a different security weakness and provides a practical environment for learning how to discover, exploit, and fix critical GraphQL flaws.
-
----
-
-## 🧩 Challenge Levels
-
-| Level | Challenge | Vulnerability Category | Status |
-| :--- | :--- | :--- | :--- |
-| 🔍 **01** | Schema Recon | GraphQL Introspection / Information Disclosure | ✅ Active |
-| 🕵️ **02** | Hidden Data | Excessive Data Exposure | ✅ Active |
-| 🎯 **03** | User Access | IDOR (Insecure Direct Object Reference) | ✅ Active |
-| 🔓 **04** | Admin Context | BOLA (Broken Object Level Authorization) | ✅ Active |
-| 👑 **05** | Privilege Escalation | Mass Assignment | ✅ Active |
-
----
-
-## 🏗️ Architecture
-
-The application is built around a simple GraphQL chat backend where queries flow dynamically down through exposed, unvalidated pathways:
-
-```text
-                    ┌───────────────────┐
-                    │      Client       │
-                    │  Browser / CTF    │
-                    └─────────┬─────────┘
-                              │
-                              │ GraphQL
-                              ▼
-                    ┌───────────────────┐
-                    │   Apollo Server   │
-                    │                   │
-                    │ Queries / Mutations│
-                    └─────────┬─────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │     Resolvers     │
-                    │                   │
-                    │ Auth / Data / API │
-                    └─────────┬─────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │   Application     │
-                    │    Mock Data      │
-                    └───────────────────┘
+```bash
+npm install
+node app.js
 ```
 
----
+The console will print the local URL (something like
+`http://localhost:4000/`) — open that in your browser to get the
+GraphQL Playground.
 
-## 🛠️ Technology Stack
+> Note: messages are stored in memory only (a plain JS array), so
+> they're wiped every time the server restarts. That's intentional —
+> this project is about practicing the GraphQL layer, not persistence.
 
-| Technology | Purpose |
-| :--- | :--- |
-| **Node.js** | Runtime Environment |
-| **Apollo Server v3** | GraphQL Server Engine |
-| **Docker** | Isolated Container Environment |
-| **JavaScript** | Application Logic & Resolvers |
+## The schema
 
----
+```graphql
+type Message {
+  id: ID!
+  content: String!
+  author: String!
+}
 
-## ⚡ Quick Start
+type Query {
+  messages: [Message!]!
+}
 
-### 🐳 Option A: Run via Docker (Recommended)
+type Mutation {
+  sendMessage(content: String!, author: String!): Message!
+}
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone git@github.com:HARSHIT-TRIPATHI90/Chat-App-GraphQl-Application-.git
-   cd Chat-App-GraphQl-Application-
-   ```
+## Try it in the Playground
 
-2. **Build the image**
-   ```bash
-   docker build -t graphql-vulnerable-lab .
-   ```
+**Send a message:**
+```graphql
+mutation {
+  sendMessage(content: "Hello world!", author: "harshit") {
+    id
+    content
+    author
+  }
+}
+```
 
-3. **Start the lab**
-   ```bash
-   docker run --rm -p 4000:4000 graphql-vulnerable-lab
-   ```
+**Read all messages back:**
+```graphql
+query {
+  messages {
+    id
+    content
+    author
+  }
+}
+```
 
-4. **Open the GraphQL Playground**
-   Navigate to [http://localhost:4000](http://localhost:4000) in your browser.
+**Only fetch the fields you need** — this is the part that makes GraphQL
+different from a typical REST endpoint. Try asking for just one field:
+```graphql
+query {
+  messages {
+    content
+  }
+}
+```
 
----
+## Things to try extending
 
-### 💻 Option B: Local Installation
+Once the basics feel comfortable, good next steps on this same codebase:
 
-If you don't want to use Docker, you can run the application directly with Node.js.
+- Add a `deleteMessage(id: ID!)` mutation.
+- Add a `timestamp` field to `Message`, set automatically in the
+  resolver (not passed in by the client).
+- Add a `user(author: String!)` query that filters `messages` down to
+  one author.
+- Swap the in-memory array for a real data source (SQLite, a JSON file,
+  anything) without changing the schema at all — a good way to see how
+  GraphQL decouples the API shape from where the data actually lives.
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
+## Project structure
 
-2. **Start the server**
-   ```bash
-   node app.js
-   ```
-   The application will be available at: [http://localhost:4000](http://localhost:4000)
-
----
-
-## 🔬 Level breakdown & Objectives
-
-### 🚩 Level 01 — Schema Recon
-* **Vulnerability:** GraphQL Introspection Enabled
-* **Objective:** Discover the application's underlying schema architecture. Look for Queries, Mutations, Hidden Types, and Arguments to understand how the API is structured.
-
-### 🚩 Level 02 — Hidden Data
-* **Vulnerability:** Excessive Data Exposure
-* **Objective:** Find the flag hidden within system records. Look closely at the object models returned by `allMessages` to extract sensitive, unadvertised operational parameters (e.g., `isAdminOnly`).
-
-### 🚩 Level 03 — IDOR
-* **Vulnerability:** Insecure Direct Object Reference
-* **Objective:** Access administrative profile secrets. The query `fetchUser(id: ID!)` trusts user parameters blindly. Fuzz the identifier properties (e.g., `999`) to bypass default system boundaries.
-
-### 🚩 Level 04 — BOLA
-* **Vulnerability:** Broken Object Level Authorization
-* **Objective:** Hijack administrative identities in mutations. Investigate how `sendMessage` registers data logs without verifying session token details, allowing identity spoofing.
-
-### 🚩 Level 05 — Mass Assignment
-* **Vulnerability:** Insecure Mutation Inputs via Blind Spreads
-* **Objective:** Escalate your privileges from `user` to `admin`. Exploit the vulnerable `updateProfile(input: ...)` parameter layout to modify administrative data parameters restricted from consumer interactions.
-
----
-
-## 🛡️ Defensive Learning Matrix
-
-After exploiting each level, try refactoring the codebase to implement industry-standard secure defaults:
-
-| Vulnerability | Example Defense Strategy |
-| :--- | :--- |
-| **Introspection** | Disable introspection (`introspection: false`) in staging and production builds. |
-| **Data Exposure** | Build dedicated UI data-transfer models; avoid exposing strict internal object keys. |
-| **IDOR** | Never rely on user-supplied IDs; pull user properties straight out of authenticated session contexts. |
-| **BOLA** | Implement role-based access checks inside specific object resolvers before yielding execution. |
-| **Mass Assignment** | Strict field allow-listing. Avoid raw object mappings (`...input`) onto critical objects. |
-
----
-
-## 📁 Project Structure
-
-```text
-graphql-vulnerable-lab/
-│
-├── app.js               # Entry point for the Apollo Server configuration
-├── package.json         # Node.js configuration & dependencies
-├── package-lock.json    # Locked dependency tree
-├── Dockerfile           # Docker container deployment setup
-├── README.md            # Lab documentation
-│
+```
+chat-app/
+├── app.js                # Apollo Server entry point
+├── package.json
+├── package-lock.json
 └── graphql/
-    ├── schema.js        # Vulnerable Type Definitions (Levels 1-5)
-    └── resolver.js      # Vulnerable Resolvers & Data Mocks
+    ├── schema.js          # Type definitions (Message, Query, Mutation)
+    └── resolver.js         # Resolvers + the in-memory messages array
 ```
 
----
+## License
 
-## ⭐ Philosophy
-
-**Break it. Understand it. Fix it.**  
-This project is not just about finding flags. The real objective is to understand the underlying security failures and learn how the same vulnerabilities can be systematically prevented in real-world GraphQL microservices.
-
----
-
-## 📜 License
-
-This project is intended exclusively for educational, CTF practice, and security training purposes.
+ISC
